@@ -19,10 +19,10 @@ export default function RecruiterScroll() {
             const loadedFrames: HTMLImageElement[] = [];
             let frameCount = 0;
 
-            // Try to load frames with common naming patterns
+            // Try to load frames with common naming patterns (.png first since our files are PNG)
             const patterns = [
-                (i: number) => `/sequence/ezgif-frame-${String(i).padStart(3, "0")}.jpg`,
                 (i: number) => `/sequence/ezgif-frame-${String(i).padStart(3, "0")}.png`,
+                (i: number) => `/sequence/ezgif-frame-${String(i).padStart(3, "0")}.jpg`,
                 (i: number) => `/sequence/${String(i).padStart(4, "0")}.png`,
                 (i: number) => `/sequence/${String(i).padStart(4, "0")}.jpg`,
                 (i: number) => `/sequence/frame_${i}.png`,
