@@ -13,7 +13,7 @@ export default function RecruiterScroll() {
     const [scrollProgress, setScrollProgress] = useState(0);
     const requestRef = useRef<number>();
 
-    // Preload all frames
+    // Progressive frame loading for faster initial load
     useEffect(() => {
         const loadFrames = async () => {
             const loadedFrames: HTMLImageElement[] = [];
@@ -29,10 +29,8 @@ export default function RecruiterScroll() {
                 (i: number) => `/sequence/frame_${i}.jpg`,
             ];
 
-            // Try loading up to 250 frames
-            for (let i = 1; i <= 250; i++) {
-                let loaded = false;
-
+            // Helper function to load a single frame
+            const loadFrame = async (i: number): Promise<HTMLImageElement | null> => {
                 for (const pattern of patterns) {
                     try {
                         const img = new Image();
@@ -44,27 +42,55 @@ export default function RecruiterScroll() {
                             img.src = path;
                         });
 
-                        loadedFrames.push(img);
-                        frameCount = i;
-                        loaded = true;
-                        break; // Found the right pattern
+                        return img;
                     } catch {
-                        // Try next pattern
                         continue;
                     }
                 }
+                return null;
+            };
 
-                if (!loaded) break; // No more frames
+            // PHASE 1: Load first 30 frames quickly for immediate display
+            console.log("📦 Loading initial frames (1-30)...");
+            for (let i = 1; i <= 30; i++) {
+                const img = await loadFrame(i);
+                if (img) {
+                    loadedFrames.push(img);
+                    frameCount = i;
+                } else {
+                    break;
+                }
             }
 
+            // Show page immediately after first batch
             if (loadedFrames.length > 0) {
-                setFrames(loadedFrames);
-                console.log(`Loaded ${loadedFrames.length} frames`);
-            } else {
-                console.log("No frames found, using fallback");
+                setFrames([...loadedFrames]);
+                setIsLoading(false);
+                console.log(`✅ Initial ${loadedFrames.length} frames loaded - page ready!`);
             }
 
-            setIsLoading(false);
+            // PHASE 2: Load remaining frames in background (non-blocking)
+            console.log("⏳ Loading remaining frames in background...");
+            setTimeout(async () => {
+                for (let i = 31; i <= 250; i++) {
+                    const img = await loadFrame(i);
+                    if (img) {
+                        loadedFrames.push(img);
+                        frameCount = i;
+
+                        // Update frames every 10 images to keep animation smooth
+                        if (i % 10 === 0) {
+                            setFrames([...loadedFrames]);
+                            console.log(`📦 Loaded ${loadedFrames.length} frames...`);
+                        }
+                    } else {
+                        break;
+                    }
+                }
+
+                setFrames([...loadedFrames]);
+                console.log(`🎉 All ${loadedFrames.length} frames loaded!`);
+            }, 100); // Small delay to let page render first
         };
 
         loadFrames();
