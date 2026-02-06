@@ -72,7 +72,7 @@ export default function RecruiterScroll() {
             // PHASE 2: Load remaining frames in background (non-blocking)
             console.log("⏳ Loading remaining frames in background...");
             setTimeout(async () => {
-                for (let i = 31; i <= 250; i++) {
+                for (let i = 31; i <= 300; i++) { // Increased to 300 to handle 273 frames
                     const img = await loadFrame(i);
                     if (img) {
                         loadedFrames.push(img);
