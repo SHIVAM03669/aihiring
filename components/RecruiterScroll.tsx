@@ -50,47 +50,28 @@ export default function RecruiterScroll() {
                 return null;
             };
 
-            // PHASE 1: Load first 30 frames quickly for immediate display
-            console.log("📦 Loading initial frames (1-30)...");
-            for (let i = 1; i <= 30; i++) {
+            // Load all frames sequentially
+            console.log("📦 Loading all frames...");
+            for (let i = 1; i <= 300; i++) {
                 const img = await loadFrame(i);
                 if (img) {
                     loadedFrames.push(img);
-                    frameCount = i;
-                } else {
-                    break;
-                }
-            }
 
-            // Show page immediately after first batch
-            if (loadedFrames.length > 0) {
-                setFrames([...loadedFrames]);
-                setIsLoading(false);
-                console.log(`✅ Initial ${loadedFrames.length} frames loaded - page ready!`);
-            }
-
-            // PHASE 2: Load remaining frames in background (non-blocking)
-            console.log("⏳ Loading remaining frames in background...");
-            setTimeout(async () => {
-                for (let i = 31; i <= 300; i++) { // Increased to 300 to handle 273 frames
-                    const img = await loadFrame(i);
-                    if (img) {
-                        loadedFrames.push(img);
-                        frameCount = i;
-
-                        // Update frames every 10 images to keep animation smooth
-                        if (i % 10 === 0) {
-                            setFrames([...loadedFrames]);
-                            console.log(`📦 Loaded ${loadedFrames.length} frames...`);
-                        }
-                    } else {
-                        break;
+                    // Show progress every 20 frames
+                    if (i % 20 === 0) {
+                        console.log(`📦 Loaded ${loadedFrames.length} frames...`);
                     }
+                } else {
+                    break; // No more frames
                 }
+            }
 
-                setFrames([...loadedFrames]);
+            // Show page after all frames are loaded
+            if (loadedFrames.length > 0) {
+                setFrames(loadedFrames);
+                setIsLoading(false);
                 console.log(`🎉 All ${loadedFrames.length} frames loaded!`);
-            }, 100); // Small delay to let page render first
+            }
         };
 
         loadFrames();
