@@ -13,10 +13,13 @@ export default function RecruiterScroll() {
     const [scrollProgress, setScrollProgress] = useState(0);
     const requestRef = useRef<number>();
 
-    // Progressive frame loading for faster initial load
+    // Progressive frame loading with parallel batching for maximum speed
     useEffect(() => {
         const loadFrames = async () => {
-            const loadedFrames: HTMLImageElement[] = [];
+            const allFrames: (HTMLImageElement | null)[] = [];
+            const INITIAL_BATCH = 30; // Load first 30 frames to show experience quickly
+            const TOTAL_FRAMES = 300;
+            const PARALLEL_BATCH_SIZE = 8; // Load 8 frames simultaneously
 
             // Helper function to load a single frame
             const loadFrame = async (i: number): Promise<HTMLImageElement | null> => {
@@ -34,8 +37,8 @@ export default function RecruiterScroll() {
                 for (const path of patterns) {
                     try {
                         const img = new Image();
-                        await new Promise((resolve, reject) => {
-                            img.onload = resolve;
+                        await new Promise<void>((resolve, reject) => {
+                            img.onload = () => resolve();
                             img.onerror = reject;
                             img.src = path;
                         });
@@ -47,29 +50,74 @@ export default function RecruiterScroll() {
                 return null;
             };
 
-            // Load all frames sequentially
-            console.log("📦 Loading all frames...");
-            for (let i = 1; i <= 300; i++) {
-                const img = await loadFrame(i);
-                if (img) {
-                    loadedFrames.push(img);
+            // Helper function to load frames in parallel batches
+            const loadBatch = async (startFrame: number, endFrame: number) => {
+                const batchPromises: Promise<{ index: number; img: HTMLImageElement | null }>[] = [];
 
-                    // Show progress every 20 frames
-                    if (i % 20 === 0) {
-                        console.log(`📦 Loaded ${loadedFrames.length} frames...`);
+                for (let i = startFrame; i <= endFrame; i++) {
+                    batchPromises.push(
+                        loadFrame(i).then(img => ({ index: i - 1, img }))
+                    );
+                }
+
+                const results = await Promise.all(batchPromises);
+
+                // Store results in the correct positions
+                for (const { index, img } of results) {
+                    if (img) {
+                        allFrames[index] = img;
+                    } else {
+                        return index + 1; // Return the frame number that failed
                     }
-                } else {
-                    console.log(`⏹️ Stopped at frame ${i} (no more frames found)`);
-                    break; // No more frames
+                }
+
+                return null; // All frames loaded successfully
+            };
+
+            // PHASE 1: Load initial batch in parallel for ultra-fast start
+            console.log(`🚀 Loading initial ${INITIAL_BATCH} frames in parallel batches of ${PARALLEL_BATCH_SIZE}...`);
+
+            for (let i = 1; i <= INITIAL_BATCH; i += PARALLEL_BATCH_SIZE) {
+                const endFrame = Math.min(i + PARALLEL_BATCH_SIZE - 1, INITIAL_BATCH);
+                const failedFrame = await loadBatch(i, endFrame);
+
+                if (failedFrame !== null) {
+                    console.log(`⏹️ Stopped at frame ${failedFrame} (no more frames found)`);
+                    break;
                 }
             }
 
-            // Show page after all frames are loaded
-            if (loadedFrames.length > 0) {
-                setFrames(loadedFrames);
+            // Show experience with initial frames
+            if (allFrames.length > 0) {
+                const initialFrames = allFrames.filter((f): f is HTMLImageElement => f !== null);
+                setFrames(initialFrames);
                 setIsLoading(false);
-                console.log(`🎉 All ${loadedFrames.length} frames loaded!`);
+                console.log(`✅ Initial ${initialFrames.length} frames ready! Starting experience...`);
             }
+
+            // PHASE 2: Load remaining frames in background with parallel batching
+            console.log(`📦 Loading remaining frames in background (parallel batches of ${PARALLEL_BATCH_SIZE})...`);
+            let hasMoreFrames = true;
+
+            for (let i = INITIAL_BATCH + 1; i <= TOTAL_FRAMES && hasMoreFrames; i += PARALLEL_BATCH_SIZE) {
+                const endFrame = Math.min(i + PARALLEL_BATCH_SIZE - 1, TOTAL_FRAMES);
+                const failedFrame = await loadBatch(i, endFrame);
+
+                if (failedFrame !== null) {
+                    console.log(`⏹️ Finished loading at frame ${failedFrame - 1}`);
+                    hasMoreFrames = false;
+                } else {
+                    // Update frames array after each batch
+                    const loadedFrames = allFrames.filter((f): f is HTMLImageElement => f !== null);
+                    setFrames([...loadedFrames]);
+                    console.log(`📦 Progress: ${loadedFrames.length} frames loaded...`);
+                }
+            }
+
+            // Final update with all frames
+            const finalFrames = allFrames.filter((f): f is HTMLImageElement => f !== null);
+            setFrames(finalFrames);
+            console.log(`🎉 Complete! ${finalFrames.length} frames total loaded with parallel batching.`);
         };
 
         loadFrames();
