@@ -19,14 +19,12 @@ export default function RecruiterScroll() {
             const loadedFrames: HTMLImageElement[] = [];
             let frameCount = 0;
 
-            // Try to load frames with common naming patterns (.png first since our files are PNG)
+            // Try to load frames with webp format - pattern includes _1 suffix for frames 1-192
             const patterns = [
-                (i: number) => `/sequence/ezgif-frame-${String(i).padStart(3, "0")}.png`,
-                (i: number) => `/sequence/ezgif-frame-${String(i).padStart(3, "0")}.jpg`,
-                (i: number) => `/sequence/${String(i).padStart(4, "0")}.png`,
-                (i: number) => `/sequence/${String(i).padStart(4, "0")}.jpg`,
-                (i: number) => `/sequence/frame_${i}.png`,
-                (i: number) => `/sequence/frame_${i}.jpg`,
+                (i: number) => `/sequence/ezgif-frame-${String(i).padStart(3, "0")}_1.webp`,
+                (i: number) => `/sequence/ezgif-frame-${String(i).padStart(3, "0")}.webp`,
+                (i: number) => `/sequence/${String(i).padStart(4, "0")}.webp`,
+                (i: number) => `/sequence/frame_${i}.webp`,
             ];
 
             // Helper function to load a single frame
