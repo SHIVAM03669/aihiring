@@ -17,29 +17,28 @@ export default function RecruiterScroll() {
     useEffect(() => {
         const loadFrames = async () => {
             const loadedFrames: HTMLImageElement[] = [];
-            let frameCount = 0;
-
-            // Try to load frames with webp format - pattern includes _1 suffix for frames 1-192
-            const patterns = [
-                (i: number) => `/sequence/ezgif-frame-${String(i).padStart(3, "0")}_1.webp`,
-                (i: number) => `/sequence/ezgif-frame-${String(i).padStart(3, "0")}.webp`,
-                (i: number) => `/sequence/${String(i).padStart(4, "0")}.webp`,
-                (i: number) => `/sequence/frame_${i}.webp`,
-            ];
 
             // Helper function to load a single frame
             const loadFrame = async (i: number): Promise<HTMLImageElement | null> => {
-                for (const pattern of patterns) {
+                // For frames 1-192: prioritize _1 suffix, then try without suffix
+                // For frames 193+: only the regular naming (no _1 suffix exists)
+                const patterns = i <= 192
+                    ? [
+                        `/sequence/ezgif-frame-${String(i).padStart(3, "0")}_1.webp`,
+                        `/sequence/ezgif-frame-${String(i).padStart(3, "0")}.webp`,
+                    ]
+                    : [
+                        `/sequence/ezgif-frame-${String(i).padStart(3, "0")}.webp`,
+                    ];
+
+                for (const path of patterns) {
                     try {
                         const img = new Image();
-                        const path = pattern(i);
-
                         await new Promise((resolve, reject) => {
                             img.onload = resolve;
                             img.onerror = reject;
                             img.src = path;
                         });
-
                         return img;
                     } catch {
                         continue;
@@ -60,6 +59,7 @@ export default function RecruiterScroll() {
                         console.log(`📦 Loaded ${loadedFrames.length} frames...`);
                     }
                 } else {
+                    console.log(`⏹️ Stopped at frame ${i} (no more frames found)`);
                     break; // No more frames
                 }
             }
